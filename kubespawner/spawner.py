@@ -659,6 +659,11 @@ class KubeSpawner(Spawner):
         """
     )
 
+    storage_extra_pvc_annotations = Dict(
+        {},
+        config=True
+    )
+
     storage_class = Unicode(
         None,
         config=True,
@@ -912,7 +917,7 @@ class KubeSpawner(Spawner):
         List of profiles to offer for selection by the user.
 
         Signature is: List(Dict()), where each item is a dictionary that has two keys:
-        
+
         - 'display_name': the human readable display name (should be HTML safe)
         - 'description': Optional description of this profile displayed to the user.
         - 'kubespawner_override': a dictionary with overrides to apply to the KubeSpawner
@@ -1208,6 +1213,7 @@ class KubeSpawner(Spawner):
         })
 
         annotations = self._build_common_annotations({})
+        annotations.update(self.storage_extra_pvc_annotations)
 
         return make_pvc(
             name=self.pvc_name,
