@@ -1214,6 +1214,8 @@ class KubeSpawner(Spawner):
 
         annotations = self._build_common_annotations({})
         annotations.update(self.storage_extra_pvc_annotations)
+        for k, v in annotations.items():
+            annotations[k] = self._expand_user_properties(v)
 
         return make_pvc(
             name=self.pvc_name,
