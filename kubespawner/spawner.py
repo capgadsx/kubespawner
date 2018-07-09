@@ -1340,14 +1340,14 @@ class KubeSpawner(Spawner):
 
     @async_generator
     async def progress(self):
-        self.log('async in progress')
+        self.log.info('async in progress')
         channel = self._expand_user_properties(self.progress_redis_channel_template)
-        self.log('waiting for messages in channel:', channel)
-        self.log(self.redis_server)
+        self.log.info('waiting for messages in channel:', channel)
+        self.log.info(self.redis_server)
         self.redis_pubsub.subscribe([channel])
-        self.log('subscribed')
+        self.log.info('subscribed')
         for message in self.redis_pubsub.listen():
-            self.log('message:', message)
+            self.log.info('message:', message)
             if message['type'] == 'message':
                 msgdata = message['data'].decode('utf-8')
                 if msgdata == 'END':
