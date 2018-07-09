@@ -31,6 +31,7 @@ from kubespawner.objects import make_pod, make_pvc
 from kubespawner.reflector import NamespacedResourceReflector
 from asyncio import sleep
 from async_generator import async_generator, yield_
+import redis, json
 
 
 class PodReflector(NamespacedResourceReflector):
@@ -118,6 +119,9 @@ class KubeSpawner(Spawner):
         if self.port == 0:
             # Our default port is 8888
             self.port = 8888
+
+        self.redis = redis.Redis(self.redis_server)
+        self.redis_pubsub = self.redis.pubsub()
 
     k8s_api_threadpool_workers = Integer(
         # Set this explicitly, since this is the default in Python 3.5+
@@ -977,6 +981,16 @@ class KubeSpawner(Spawner):
         """
     )
 
+    redis_server = Unicode(
+        '127.0.0.1',
+        config=True,
+    )
+
+    progress_redis_channel_template = Unicode(
+        'jupyterhub-{username}',
+        config=True,
+    )
+
     # deprecate redundant and inconsistent singleuser_ and user_ prefixes:
     _deprecated_traits = [
         "singleuser_working_dir",
@@ -1326,39 +1340,16 @@ class KubeSpawner(Spawner):
 
     @async_generator
     async def progress(self):
-        next_event = 0
-        self.log.debug('progress generator: %s', self.pod_name)
-
-        pod_id = None
-        first_run = True
-        event_reflector = self.event_reflector
-        if not event_reflector:
-            self.log.warning("No event reflector for %s", self.pod_name)
-            return
-        while first_run or not event_reflector.stopped():
-            # run at least once, so we get events that are already waiting,
-            # even if we've stopped waiting for new events
-            first_run = False
-            events = event_reflector.events
-            len_events = len(events)
-            if next_event < len_events:
-                # only show messages for the 'current' pod
-                # pod_id may change if a previous pod is being stopped
-                # before starting a new one
-                # use the uid of the latest event to identify 'current'
-                pod_id = events[-1].involved_object.uid
-                for i in range(next_event, len_events):
-                    event = events[i]
-                    # events will include events for previous pods with our name
-                    # only show events that correspond to our currently spawning pod
-                    if event.involved_object.uid != pod_id:
-                        continue
-                    await yield_({
-                        'progress': 50,
-                        'message':  "%s [%s] %s" % (event.last_timestamp, event.type, event.message)
-                    })
-                next_event = len_events
-            await sleep(1)
+        channel = self._expand_user_properties(self.progress_redis_channel_template)
+        self.redis_pubsub.subscribe([channel])
+        for message in self.redis_pubsub.listen():
+            if message['type'] == 'message':
+                msgdata = message['data'].decode('utf-8')
+                if msgdata == 'END':
+                    break
+                else:
+                    data = json.loads(msgdata)
+                    await yield_({'progress': int(data['progress']), 'message': data['message']})
 
     def _start_watching_events(self):
         """Start watching for pod events for our pod"""
