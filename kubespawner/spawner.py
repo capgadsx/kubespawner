@@ -1346,16 +1346,17 @@ class KubeSpawner(Spawner):
         self.log.info(self.redis_server)
         self.redis_pubsub.subscribe([channel])
         self.log.info('subscribed')
-        for message in self.redis_pubsub.listen():
+        message = self.redis_pubsub.get_message()
+        self.redis_pubsub.close()
+        if message:
             self.log.info('message: '+ str(message))
             if message['type'] == 'message':
                 msgdata = message['data'].decode('utf-8')
                 self.log.info('msgdata: '+ str(msgdata))
-                if msgdata == 'END':
-                    break
-                else:
-                    data = json.loads(msgdata)
-                    await yield_({'progress': int(data['progress']), 'message': data['message']})
+                data = json.loads(msgdata)
+                await yield_({'progress': int(data['progress']), 'message': data['message']})
+        else:
+            self.log.info('no message')
 
     def _start_watching_events(self):
         """Start watching for pod events for our pod"""
