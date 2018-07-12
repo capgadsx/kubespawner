@@ -1338,10 +1338,9 @@ class KubeSpawner(Spawner):
     def asynchronize(self, method, *args, **kwargs):
         return method(*args, **kwargs)
 
-    import random
-
     @async_generator
     async def progress(self):
+        import random
         await yield_({'progress': str(random.randint(0, 100)), 'message': 'Dummy Message'})
 
     def _start_watching_events(self):
