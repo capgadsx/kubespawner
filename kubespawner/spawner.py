@@ -1343,8 +1343,7 @@ class KubeSpawner(Spawner):
 
     @async_generator
     async def progress(self):
-        await yield_({'progress': str(randomint(3, 90)), 'message': 'Dummy Message'})
-        time.sleep(1)
+        await yield_({'progress': str(randint(3, 90)), 'message': 'Dummy Message'})
         '''self.log.info('async in progress')
         channel = self._expand_user_properties(self.progress_redis_channel_template)
         self.log.info('waiting for messages in channel: ' + channel)
