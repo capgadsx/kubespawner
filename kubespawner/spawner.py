@@ -1341,7 +1341,11 @@ class KubeSpawner(Spawner):
     @async_generator
     async def progress(self):
         import random
-        await yield_({'progress': str(random.randint(0, 100)), 'message': 'Dummy Message'})
+        import time
+        while True:
+            time.sleep(1)
+            val = str(random.randint(0, 100))
+            await yield_({'progress': val, 'message': 'Dummy Message ' + val})
 
     def _start_watching_events(self):
         """Start watching for pod events for our pod"""
