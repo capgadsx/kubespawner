@@ -1338,29 +1338,11 @@ class KubeSpawner(Spawner):
     def asynchronize(self, method, *args, **kwargs):
         return method(*args, **kwargs)
 
-    import time
-    from random import randint
+    import random
 
     @async_generator
     async def progress(self):
-        await yield_({'progress': str(randint(3, 90)), 'message': 'Dummy Message'})
-        '''self.log.info('async in progress')
-        channel = self._expand_user_properties(self.progress_redis_channel_template)
-        self.log.info('waiting for messages in channel: ' + channel)
-        self.log.info(self.redis_server)
-        self.redis_pubsub.subscribe([channel])
-        self.log.info('subscribed')
-        message = self.redis_pubsub.get_message()
-        self.redis_pubsub.close()
-        if message:
-            self.log.info('message: '+ str(message))
-            if message['type'] == 'message':
-                msgdata = message['data'].decode('utf-8')
-                self.log.info('msgdata: '+ str(msgdata))
-                data = json.loads(msgdata)
-                await yield_({'progress': int(data['progress']), 'message': data['message']})
-        else:
-            self.log.info('no message')'''
+        await yield_({'progress': str(random.randint(0, 100)), 'message': 'Dummy Message'})
 
     def _start_watching_events(self):
         """Start watching for pod events for our pod"""
