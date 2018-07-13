@@ -31,7 +31,7 @@ from kubespawner.objects import make_pod, make_pvc
 from kubespawner.reflector import NamespacedResourceReflector
 from asyncio import sleep
 from async_generator import async_generator, yield_
-import json
+import json, requests
 
 
 class PodReflector(NamespacedResourceReflector):
@@ -1327,11 +1327,17 @@ class KubeSpawner(Spawner):
 
     @async_generator
     async def progress(self):
-        pod = self.pod_reflector.pods[self.pod_name]
-        self.log.info(pod)
-        for i in range(1, 10):
-            await yield_({'progress': i * 10, 'message': 'Stage %s' % i,})
-            await gen.sleep(3)
+        pod_ip = self.pod_reflector.pods[self.pod_name].status.pod_ip
+        self.log.info(pod_ip)
+        while True:
+            r = requests.get('http://%s:8081/progress' % pod_ip)
+            self.log.info(r)
+            resp = r.json()
+            self.log.info(resp)
+            for prog in resp:
+                self.log.info(prog)
+                await yield_(prog)
+            await gen.sleep(5)
 
     def _start_watching_events(self):
         """Start watching for pod events for our pod"""
