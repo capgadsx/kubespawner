@@ -31,7 +31,7 @@ from kubespawner.objects import make_pod, make_pvc
 from kubespawner.reflector import NamespacedResourceReflector
 from asyncio import sleep
 from async_generator import async_generator, yield_
-import redis, json
+import json
 
 
 class PodReflector(NamespacedResourceReflector):
@@ -119,9 +119,6 @@ class KubeSpawner(Spawner):
         if self.port == 0:
             # Our default port is 8888
             self.port = 8888
-
-        self.redis = redis.Redis(self.redis_server)
-        self.redis_pubsub = self.redis.pubsub()
 
     k8s_api_threadpool_workers = Integer(
         # Set this explicitly, since this is the default in Python 3.5+
@@ -981,16 +978,6 @@ class KubeSpawner(Spawner):
         """
     )
 
-    redis_server = Unicode(
-        '127.0.0.1',
-        config=True,
-    )
-
-    progress_redis_channel_template = Unicode(
-        'jupyterhub-{username}',
-        config=True,
-    )
-
     # deprecate redundant and inconsistent singleuser_ and user_ prefixes:
     _deprecated_traits = [
         "singleuser_working_dir",
@@ -1340,6 +1327,8 @@ class KubeSpawner(Spawner):
 
     @async_generator
     async def progress(self):
+        pod = self.pod_reflector.pods[self.pod_name]
+        self.log.info(pod)
         for i in range(1, 10):
             await yield_({'progress': i * 10, 'message': 'Stage %s' % i,})
             await gen.sleep(3)
