@@ -1328,16 +1328,17 @@ class KubeSpawner(Spawner):
     @async_generator
     async def progress(self):
         pod_ip = self.pod_reflector.pods[self.pod_name].status.pod_ip
-        self.log.info(pod_ip)
         while True:
-            r = requests.get('http://%s:8081/progress' % pod_ip)
-            self.log.info(r)
-            resp = r.json()
-            self.log.info(resp)
-            for prog in resp:
-                self.log.info(prog)
-                await yield_(prog)
-            await gen.sleep(5)
+            resp = None
+            try:
+                r = requests.get('http://%s:8081/progress' % pod_ip)
+                resp = r.json()
+            except Exception:
+                pass
+            if resp != None:
+                for prog in resp:
+                    await yield_(prog)
+            await gen.sleep(3)
 
     def _start_watching_events(self):
         """Start watching for pod events for our pod"""
